@@ -1,0 +1,134 @@
+/* Online Java Compiler and Editor */
+import java.util.*;
+
+class QuizQuestion {
+    private String question;
+    private List<String> options;
+    private int correctOptionIndex;
+    private static final int TIME_LIMIT = 10; // Time limit for each question in seconds
+
+    public QuizQuestion(String question, List<String> options, int correctOptionIndex) {
+        this.question = question;
+        this.options = options;
+        this.correctOptionIndex = correctOptionIndex;
+    }
+
+    public String getQuestion() {
+        return question;
+    }
+
+    public List<String> getOptions() {
+        return options;
+    }
+
+    public int getCorrectOptionIndex() {
+        return correctOptionIndex;
+    }
+
+    public int getTimeLimit() {
+        return TIME_LIMIT;
+    }
+}
+
+class Quiz {
+    private List<QuizQuestion> questions;
+    private int score;
+    private int currentQuestionIndex;
+    private Scanner scanner;
+
+    public Quiz(List<QuizQuestion> questions) {
+        this.questions = questions;
+        this.score = 0;
+        this.currentQuestionIndex = 0;
+        this.scanner = new Scanner(System.in);
+    }
+
+    public void startQuiz() {
+        for (QuizQuestion question : questions) {
+            displayQuestion(question);
+
+            // Create a timer thread
+            Thread timerThread = new Thread(() -> {
+                try {
+                    Thread.sleep(question.getTimeLimit() * 1000);
+                    System.out.println("\nTime's up!");
+                    checkAnswer(-1, question); // -1 represents no user input within the time limit
+                } catch (InterruptedException e) {
+                    // Do nothing, as the thread can be interrupted by user input
+                }
+            });
+
+            timerThread.start();
+
+            int userAnswer = getUserAnswer();
+
+            // Interrupt the timer thread to stop it
+            timerThread.interrupt();
+
+            checkAnswer(userAnswer, question);
+            System.out.println(); // Add a newline for better readability
+        }
+
+        displayResult();
+    }
+
+    private void displayQuestion(QuizQuestion question) {
+        System.out.println(question.getQuestion());
+        List<String> options = question.getOptions();
+        for (int i = 0; i < options.size(); i++) {
+            System.out.println((i + 1) + ". " + options.get(i));
+        }
+        System.out.print("Your answer: ");
+    }
+
+    private int getUserAnswer() {
+        int userAnswer = -1;
+
+        // Loop until valid input or time's up
+        while (true) {
+            try {
+                userAnswer = scanner.nextInt();
+                scanner.nextLine(); // Consume the newline character
+                break; // Break the loop on successful input
+            } catch (InputMismatchException e) {
+                System.out.println("Invalid input. Please enter a number.");
+                scanner.nextLine(); // Consume the invalid input
+            }
+        }
+
+        return userAnswer - 1; // Adjust to zero-based index
+    }
+
+    private void checkAnswer(int userAnswer, QuizQuestion question) {
+        if (userAnswer == question.getCorrectOptionIndex()) {
+            System.out.println("Correct!");
+            score++;
+        } else if (userAnswer == -1) {
+            System.out.println("Time's up! The correct answer was: " +
+                    question.getOptions().get(question.getCorrectOptionIndex()));
+        } else {
+            System.out.println("Incorrect. The correct answer was: " +
+                    question.getOptions().get(question.getCorrectOptionIndex()));
+        }
+    }
+
+    private void displayResult() {
+        System.out.println("Quiz Completed!");
+        System.out.println("Your Score: " + score + " out of " + questions.size());
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        // Create quiz questions
+        List<QuizQuestion> quizQuestions = new ArrayList<>();
+        quizQuestions.add(new QuizQuestion("What is the capital of France?",
+                Arrays.asList("Berlin", "Madrid", "Paris", "Rome"), 2));
+        quizQuestions.add(new QuizQuestion("Which planet is known as the Red Planet?",
+                Arrays.asList("Mars", "Venus", "Jupiter", "Saturn"), 0));
+
+        // Create and start the quiz
+        Quiz quiz = new Quiz(quizQuestions);
+        quiz.startQuiz();
+    }
+}
